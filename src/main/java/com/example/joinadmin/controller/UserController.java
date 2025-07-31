@@ -2,13 +2,16 @@ package com.example.joinadmin.controller;
 
 import com.example.joinadmin.dto.LoginRequest;
 import com.example.joinadmin.dto.LoginResponse;
+import com.example.joinadmin.dto.UserDetailResponse;
 import com.example.joinadmin.dto.UserRegistrationRequest;
 import com.example.joinadmin.dto.UserRegistrationResponse;
+import com.example.joinadmin.entity.User;
 import com.example.joinadmin.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
@@ -88,6 +91,32 @@ public class UserController {
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+    }
+    
+    /**
+     * 사용자 상세정보 조회 API (로그인 사용자 본인만)
+     * @param authentication Spring Security 인증 정보
+     * @return 사용자 상세정보 응답
+     */
+    @GetMapping("/me")
+    public ResponseEntity<UserDetailResponse> getUserDetail(Authentication authentication) {
+        try {
+            // JWT 필터에서 설정한 userId를 가져옴
+            Long userId = (Long) authentication.getDetails();
+            
+            // 사용자 정보 조회
+            User user = userService.findById(userId);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+            
+            // 응답 생성 (주소는 가장 큰 단위의 행정구역만 포함)
+            UserDetailResponse response = new UserDetailResponse(user);
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
