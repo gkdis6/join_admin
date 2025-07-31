@@ -2,9 +2,12 @@ package com.example.joinadmin.service;
 
 import com.example.joinadmin.dto.UserRegistrationRequest;
 import com.example.joinadmin.dto.UserRegistrationResponse;
+import com.example.joinadmin.dto.UserUpdateRequest;
 import com.example.joinadmin.entity.User;
 import com.example.joinadmin.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,5 +79,70 @@ public class UserService {
     @Transactional(readOnly = true)
     public User findById(Long id) {
         return userRepository.findById(id).orElse(null);
+    }
+    
+    // === 관리자 전용 메서드 ===
+    
+    /**
+     * 모든 사용자 조회 (페이징)
+     * @param pageable 페이징 정보
+     * @return 페이징된 사용자 목록
+     */
+    @Transactional(readOnly = true)
+    public Page<User> findAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable);
+    }
+    
+    /**
+     * 사용자 정보 수정 (암호, 주소만)
+     * @param id 사용자 ID
+     * @param request 수정 요청 정보
+     * @return 수정 성공 여부
+     */
+    public boolean updateUser(Long id, UserUpdateRequest request) {
+        try {
+            User user = userRepository.findById(id).orElse(null);
+            if (user == null) {
+                return false;
+            }
+            
+            // 수정할 필드가 없으면 false 반환
+            if (!request.hasUpdates()) {
+                return false;
+            }
+            
+            // 암호 수정
+            if (request.hasPasswordUpdate()) {
+                user.setPassword(passwordEncoder.encode(request.getPassword()));
+            }
+            
+            // 주소 수정
+            if (request.hasAddressUpdate()) {
+                user.setAddress(request.getAddress());
+            }
+            
+            userRepository.save(user);
+            return true;
+            
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    /**
+     * 사용자 삭제
+     * @param id 사용자 ID
+     * @return 삭제 성공 여부
+     */
+    public boolean deleteUser(Long id) {
+        try {
+            if (userRepository.existsById(id)) {
+                userRepository.deleteById(id);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
