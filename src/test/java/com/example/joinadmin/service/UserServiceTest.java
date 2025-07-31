@@ -1,5 +1,7 @@
 package com.example.joinadmin.service;
 
+import com.example.joinadmin.dto.LoginRequest;
+import com.example.joinadmin.dto.LoginResponse;
 import com.example.joinadmin.dto.UserRegistrationRequest;
 import com.example.joinadmin.dto.UserRegistrationResponse;
 import com.example.joinadmin.dto.UserUpdateRequest;
@@ -376,5 +378,101 @@ class UserServiceTest {
         
         // Then
         assertThat(result).isFalse();
+    }
+    
+    // === 로그인 관련 테스트 ===
+    
+    @Test
+    @DisplayName("로그인 성공 - 올바른 계정과 암호")
+    void loginUser_WithValidCredentials_ShouldReturnSuccess() {
+        // Given - 테스트 사용자 생성
+        UserRegistrationRequest regRequest = new UserRegistrationRequest(
+                "logintest1",
+                "password123",
+                "로그인테스트",
+                "1111111111111",
+                "01011111111",
+                "로그인테스트주소"
+        );
+        userService.registerUser(regRequest);
+        
+        LoginRequest loginRequest = new LoginRequest("logintest1", "password123");
+        
+        // When
+        LoginResponse response = userService.loginUser(loginRequest);
+        
+        // Then
+        assertThat(response.isSuccess()).isTrue();
+        assertThat(response.getMessage()).isEqualTo("로그인이 성공적으로 완료되었습니다.");
+        assertThat(response.getToken()).isNotNull();
+        assertThat(response.getToken()).isNotEmpty();
+        assertThat(response.getUserId()).isNotNull();
+    }
+    
+    @Test
+    @DisplayName("로그인 실패 - 존재하지 않는 계정")
+    void loginUser_WithNonExistentAccount_ShouldReturnFailure() {
+        // Given
+        LoginRequest loginRequest = new LoginRequest("nonexistent", "password123");
+        
+        // When
+        LoginResponse response = userService.loginUser(loginRequest);
+        
+        // Then
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getMessage()).isEqualTo("계정 또는 암호가 일치하지 않습니다.");
+        assertThat(response.getToken()).isNull();
+        assertThat(response.getUserId()).isNull();
+    }
+    
+    @Test
+    @DisplayName("로그인 실패 - 잘못된 암호")
+    void loginUser_WithWrongPassword_ShouldReturnFailure() {
+        // Given - 테스트 사용자 생성
+        UserRegistrationRequest regRequest = new UserRegistrationRequest(
+                "logintest2",
+                "correctpassword",
+                "로그인테스트2",
+                "2222222222222",
+                "01022222222",
+                "로그인테스트주소2"
+        );
+        userService.registerUser(regRequest);
+        
+        LoginRequest loginRequest = new LoginRequest("logintest2", "wrongpassword");
+        
+        // When
+        LoginResponse response = userService.loginUser(loginRequest);
+        
+        // Then
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getMessage()).isEqualTo("계정 또는 암호가 일치하지 않습니다.");
+        assertThat(response.getToken()).isNull();
+        assertThat(response.getUserId()).isNull();
+    }
+    
+    @Test
+    @DisplayName("로그인 후 토큰에서 정보 추출 가능")
+    void loginUser_TokenShouldContainCorrectInformation() {
+        // Given - 테스트 사용자 생성
+        UserRegistrationRequest regRequest = new UserRegistrationRequest(
+                "tokentest",
+                "password123",
+                "토큰테스트",
+                "3333333333333",
+                "01033333333",
+                "토큰테스트주소"
+        );
+        UserRegistrationResponse regResponse = userService.registerUser(regRequest);
+        
+        LoginRequest loginRequest = new LoginRequest("tokentest", "password123");
+        
+        // When
+        LoginResponse response = userService.loginUser(loginRequest);
+        
+        // Then
+        assertThat(response.isSuccess()).isTrue();
+        assertThat(response.getToken()).isNotNull();
+        assertThat(response.getUserId()).isEqualTo(regResponse.getUserId());
     }
 }

@@ -1,10 +1,13 @@
 package com.example.joinadmin.service;
 
+import com.example.joinadmin.dto.LoginRequest;
+import com.example.joinadmin.dto.LoginResponse;
 import com.example.joinadmin.dto.UserRegistrationRequest;
 import com.example.joinadmin.dto.UserRegistrationResponse;
 import com.example.joinadmin.dto.UserUpdateRequest;
 import com.example.joinadmin.entity.User;
 import com.example.joinadmin.repository.UserRepository;
+import com.example.joinadmin.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,11 +21,13 @@ public class UserService {
     
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
     
     @Autowired
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.passwordEncoder = new BCryptPasswordEncoder();
+        this.jwtUtil = jwtUtil;
     }
     
     /**
@@ -58,6 +63,34 @@ public class UserService {
             
         } catch (Exception e) {
             return UserRegistrationResponse.failure("회원가입 처리 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 로그인 처리
+     * @param request 로그인 요청 정보
+     * @return 로그인 응답
+     */
+    public LoginResponse loginUser(LoginRequest request) {
+        try {
+            // 1. 계정으로 사용자 조회
+            User user = userRepository.findByAccount(request.getAccount()).orElse(null);
+            if (user == null) {
+                return LoginResponse.failure("계정 또는 암호가 일치하지 않습니다.");
+            }
+            
+            // 2. 암호 검증
+            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                return LoginResponse.failure("계정 또는 암호가 일치하지 않습니다.");
+            }
+            
+            // 3. JWT 토큰 생성
+            String token = jwtUtil.generateToken(user.getAccount(), user.getId());
+            
+            return LoginResponse.success(token, user.getId());
+            
+        } catch (Exception e) {
+            return LoginResponse.failure("로그인 처리 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
     

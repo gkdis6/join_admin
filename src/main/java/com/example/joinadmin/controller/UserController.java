@@ -1,5 +1,7 @@
 package com.example.joinadmin.controller;
 
+import com.example.joinadmin.dto.LoginRequest;
+import com.example.joinadmin.dto.LoginResponse;
 import com.example.joinadmin.dto.UserRegistrationRequest;
 import com.example.joinadmin.dto.UserRegistrationResponse;
 import com.example.joinadmin.service.UserService;
@@ -53,6 +55,39 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } else {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+    
+    /**
+     * 로그인 API
+     * @param request 로그인 요청 정보
+     * @param bindingResult 유효성 검사 결과
+     * @return 로그인 응답
+     */
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> loginUser(
+            @Valid @RequestBody LoginRequest request,
+            BindingResult bindingResult) {
+        
+        // 1. 입력값 유효성 검사
+        if (bindingResult.hasErrors()) {
+            String errorMessage = bindingResult.getFieldErrors()
+                    .stream()
+                    .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                    .collect(Collectors.joining(", "));
+            
+            LoginResponse response = LoginResponse.failure("입력값 오류: " + errorMessage);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+        
+        // 2. 로그인 처리
+        LoginResponse response = userService.loginUser(request);
+        
+        // 3. 응답 처리
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
     }
     
