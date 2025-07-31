@@ -1,9 +1,12 @@
 package com.example.joinadmin.controller;
 
+import com.example.joinadmin.dto.MessageRequest;
+import com.example.joinadmin.dto.MessageResponse;
 import com.example.joinadmin.dto.PagedResponse;
 import com.example.joinadmin.dto.UserResponse;
 import com.example.joinadmin.dto.UserUpdateRequest;
 import com.example.joinadmin.entity.User;
+import com.example.joinadmin.service.MessageService;
 import com.example.joinadmin.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,10 +28,12 @@ import java.util.stream.Collectors;
 public class AdminController {
     
     private final UserService userService;
+    private final MessageService messageService;
     
     @Autowired
-    public AdminController(UserService userService) {
+    public AdminController(UserService userService, MessageService messageService) {
         this.userService = userService;
+        this.messageService = messageService;
     }
     
     /**
@@ -152,6 +157,39 @@ public class AdminController {
             response.put("success", false);
             response.put("message", "회원을 찾을 수 없거나 삭제에 실패했습니다.");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * 연령대별 메시지 발송 API
+     * @param request 메시지 발송 요청
+     * @param bindingResult 유효성 검사 결과
+     * @return 메시지 발송 결과
+     */
+    @PostMapping("/messages")
+    public ResponseEntity<MessageResponse> sendMessage(
+            @Valid @RequestBody MessageRequest request,
+            BindingResult bindingResult) {
+        
+        // 1. 입력값 유효성 검사
+        if (bindingResult.hasErrors()) {
+            String errorMessage = bindingResult.getFieldErrors()
+                    .stream()
+                    .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                    .collect(Collectors.joining(", "));
+            
+            MessageResponse response = MessageResponse.failure("입력값 오류: " + errorMessage);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+        
+        // 2. 메시지 발송
+        MessageResponse response = messageService.sendMessageByAge(request);
+        
+        // 3. 응답 처리
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
     
