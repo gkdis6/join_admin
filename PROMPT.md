@@ -12,6 +12,17 @@
 - **목적**: 프로젝트의 모든 프롬프트를 체계적으로 관리
 - **작성일**: 2025-07-31
 
+### 2. 프로젝트 구현 시작
+- **내용**: @requirements.md 전체를 읽고 숙지해. java + spring boot 기본 프로젝트 구조를 먼저 만들고, 1번부터 차례로 진행할거야.
+- **목적**: 회원 관리 시스템 구현 (회원가입, 관리자 기능, 로그인, 메시지 발송)
+- **기술스택**: Java, Spring Boot, PostgreSQL, Docker Compose
+- **작성일**: 2025-07-31
+
+### 3. 빌드 도구 변경 요청
+- **내용**: maven 말고 gradle로 진행해줘. spring-boot-starter-web, Spring Web, Spring Boot DevTools, spring-boot-starter-data-jpa 의존성 추가해줘.
+- **목적**: Gradle 빌드 시스템으로 변경 및 필요한 의존성 추가
+- **작성일**: 2025-07-31
+
 ---
 
 *이 문서는 새로운 프롬프트가 추가될 때마다 업데이트됩니다.*
