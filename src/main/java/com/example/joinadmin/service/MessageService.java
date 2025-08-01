@@ -5,6 +5,7 @@ import com.example.joinadmin.dto.MessageResponse;
 import com.example.joinadmin.entity.User;
 import com.example.joinadmin.repository.UserRepository;
 import com.example.joinadmin.util.AgeUtil;
+import com.google.common.util.concurrent.RateLimiter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,10 @@ public class MessageService {
     private static final int SMS_RATE_LIMIT = 500; // 1분당 500회
     private static final String KAKAO_API_URL = "http://localhost:8081/kakaotalk-messages";
     private static final String SMS_API_URL = "http://localhost:8082/sms";
+    
+    // RateLimiter: 분당 제한을 초당 제한으로 변환
+    private final RateLimiter kakaoRateLimiter = RateLimiter.create(KAKAO_RATE_LIMIT / 60.0); // 100/60 = 1.67 requests/second
+    private final RateLimiter smsRateLimiter = RateLimiter.create(SMS_RATE_LIMIT / 60.0); // 500/60 = 8.33 requests/second
     
     @Autowired
     public MessageService(UserRepository userRepository) {
@@ -80,23 +85,24 @@ public class MessageService {
                     
                     if (kakaoSuccess) {
                         successCount.incrementAndGet();
+                        System.out.println(String.format("[SUCCESS] 카카오톡 발송 성공 - 사용자: %s(%s), 전화번호: %s",
+                                user.getName(), user.getAccount(), user.getPhoneNumber()));
                     } else {
                         // 카카오톡 실패 시 SMS 발송
                         boolean smsSuccess = sendSmsMessage(user.getPhoneNumber(), personalizedMessage);
                         if (smsSuccess) {
                             successCount.incrementAndGet();
+                            System.out.println(String.format("[SUCCESS] SMS 대체 발송 성공 - 사용자: %s(%s), 전화번호: %s", 
+                                    user.getName(), user.getAccount(), user.getPhoneNumber()));
                         } else {
                             failCount.incrementAndGet();
+                            // 완전 실패 시 상세 로깅 (재시도를 위한 정보)
+                            System.err.println(String.format("[FAILED] 메시지 발송 완전 실패 - 사용자: %s(%s), 전화번호: %s, 메시지: %s", 
+                                    user.getName(), user.getAccount(), user.getPhoneNumber(), personalizedMessage));
                         }
                     }
                     
-                    // 속도 제한을 위한 대기 (실제로는 더 정교한 제한 필요)
-                    try {
-                        Thread.sleep(50); // 50ms 대기 (초당 20회 제한)
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
+                    // 속도 제한은 각 API 호출 메서드에서 처리됨
                 }
             });
             
@@ -128,6 +134,11 @@ public class MessageService {
      */
     private boolean sendKakaoMessage(String phone, String message) {
         try {
+            // 카카오톡 API 속도 제한 확인 (100회/분)
+            if (!kakaoRateLimiter.tryAcquire()) {
+                return false; // 속도 제한 초과시 즉시 실패 처리 (SMS로 전환)
+            }
+            
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBasicAuth("autoever", "1234");
@@ -149,7 +160,7 @@ public class MessageService {
             
         } catch (Exception e) {
             // 로그 출력 (운영환경에서는 적절한 로깅 프레임워크 사용)
-            System.err.println("카카오톡 메시지 발송 실패: " + e.getMessage());
+            System.err.println(String.format("[ERROR] 카카오톡 발송 실패 - 전화번호: %s, 오류: %s", phone, e.getMessage()));
             return false;
         }
     }
@@ -162,6 +173,11 @@ public class MessageService {
      */
     private boolean sendSmsMessage(String phone, String message) {
         try {
+            // SMS API 속도 제한 확인 (500회/분)
+            if (!smsRateLimiter.tryAcquire()) {
+                return false; // 속도 제한 초과시 즉시 실패 처리
+            }
+            
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             headers.setBasicAuth("autoever", "5678");
@@ -185,7 +201,7 @@ public class MessageService {
             
         } catch (Exception e) {
             // 로그 출력 (운영환경에서는 적절한 로깅 프레임워크 사용)
-            System.err.println("SMS 메시지 발송 실패: " + e.getMessage());
+            System.err.println(String.format("[ERROR] SMS 발송 실패 - 전화번호: %s, 오류: %s", phone, e.getMessage()));
             return false;
         }
     }
