@@ -8,6 +8,7 @@ import com.example.joinadmin.dto.UserUpdateRequest;
 import com.example.joinadmin.entity.User;
 import com.example.joinadmin.service.MessageService;
 import com.example.joinadmin.service.UserService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
+@Tag(name = "Admin API", description = "관리자 전용 API")
 public class AdminController {
     
     private final UserService userService;

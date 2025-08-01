@@ -7,6 +7,7 @@ import com.example.joinadmin.dto.UserRegistrationRequest;
 import com.example.joinadmin.dto.UserRegistrationResponse;
 import com.example.joinadmin.entity.User;
 import com.example.joinadmin.service.UserService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
+@Tag(name = "User API", description = "사용자 관련 API")
 public class UserController {
     
     private final UserService userService;
