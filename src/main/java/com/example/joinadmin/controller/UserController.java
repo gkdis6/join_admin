@@ -120,12 +120,4 @@ public class UserController {
         }
     }
     
-    /**
-     * API 상태 확인용 엔드포인트
-     * @return 상태 응답
-     */
-    @GetMapping("/health")
-    public ResponseEntity<String> healthCheck() {
-        return ResponseEntity.ok("User API is running");
-    }
 }

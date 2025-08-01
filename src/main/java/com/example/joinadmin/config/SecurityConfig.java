@@ -48,7 +48,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable()) // API이므로 CSRF 비활성화
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless 설정
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/users/register", "/api/users/health", "/api/users/login").permitAll() // 회원가입, 로그인은 인증 없이 허용
+                .requestMatchers("/api/users/register", "/api/users/login").permitAll() // 회원가입, 로그인은 인증 없이 허용
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll() // Swagger UI 허용
                 .requestMatchers("/api/admin/**").hasRole("ADMIN") // 관리자 API는 ADMIN 권한 필요
                 .requestMatchers("/api/users/**").hasRole("USER") // 사용자 API는 USER 권한 필요
